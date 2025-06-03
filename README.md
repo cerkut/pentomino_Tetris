@@ -17,6 +17,9 @@ Train the AI Agent
 python train_agent.py [episodes]
 ```
 
+Training metrics are logged using [Weights & Biases](https://wandb.ai/) in
+offline mode so no account is required.
+
 # Watch the Trained AI Play
 
 ```

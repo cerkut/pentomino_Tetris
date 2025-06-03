@@ -22,6 +22,14 @@ class GameWrapper:
         initial_score = self.game.score
         initial_lines = self.game.lines_cleared
 
+        # Metrics before the action for intermediate rewards
+        holes_before = self.count_holes()
+        heights_before = self.calculate_column_heights()
+        bump_before = sum(abs(heights_before[i] - heights_before[i-1])
+                          for i in range(1, len(heights_before)))
+        near_lines_before = self.count_almost_complete_lines()
+        max_height_before = max(heights_before) if heights_before else 0
+
         # Take action
         if action == 0:
             self.game.move_piece(-1)
@@ -41,7 +49,7 @@ class GameWrapper:
             reward += 2000 * (2 ** lines_cleared)  # 2000, 4000, 8000, 16000 for 1-4 lines
             
         holes = self.count_holes()
-        reward -= holes * 2 
+        reward -= holes * 2
         
         # Height management
         heights = self.calculate_column_heights()
@@ -53,6 +61,17 @@ class GameWrapper:
             
         bumpiness = sum(abs(heights[i] - heights[i-1]) for i in range(1, len(heights)))
         reward -= bumpiness * 2  # Increased penalty for uneven surfaces
+
+        # Intermediate rewards for incremental improvements
+        near_lines_after = self.count_almost_complete_lines()
+        delta_holes = holes_before - holes
+        delta_bump = bump_before - bumpiness
+        delta_near = near_lines_after - near_lines_before
+        delta_height = max_height_before - max_height
+        reward += (delta_holes * 0.5 +
+                   delta_bump * 0.1 +
+                   delta_near * 1.0 +
+                   delta_height * 0.05)
         
         reward -= 1
         

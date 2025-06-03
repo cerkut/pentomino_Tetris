@@ -7,6 +7,7 @@ from rl_agent import PentominoGameState, LinearAgent
 from game import PentominoGame
 from constants import GRID_WIDTH, GRID_HEIGHT
 import random
+import wandb
 
 class GameWrapper:
     def __init__(self):
@@ -123,6 +124,8 @@ def train_agent(episodes=1000, print_every=10):
     action_size = 5
     agent = LinearAgent(state_size, action_size)
 
+    wandb.init(project="pentomino_tetris", config={"episodes": episodes}, mode="offline")
+
     EPSILON_START = 1.0
     EPSILON_END = 0.05
     decay_rate = -np.log(EPSILON_END / EPSILON_START) / (episodes * 5)  
@@ -196,11 +199,20 @@ def train_agent(episodes=1000, print_every=10):
         lines_history.append(episode_lines)
         cumulative_rewards.append(total_cumulative_reward)
         
-        if ep % print_every == 0 or episode_lines > 0:  
+        if ep % print_every == 0 or episode_lines > 0:
             avg_reward = np.mean(reward_history) if reward_history else 0
             avg_lines = np.mean(lines_history) if lines_history else 0
             print(f"Ep {ep}/{episodes} | Reward: {total_reward:.1f} | Score: {episode_score} | "
                   f"Lines: {episode_lines} | Steps: {training_steps} | Avg Lines: {avg_lines:.2f} | Epsilon: {agent.epsilon:.3f}")
+
+        wandb.log({
+            "episode": ep,
+            "reward": total_reward,
+            "score": episode_score,
+            "lines_cleared": episode_lines,
+            "steps": training_steps,
+            "epsilon": agent.epsilon
+        })
 
     #final model
     agent.save('models/agent_final')
@@ -270,7 +282,8 @@ def train_agent(episodes=1000, print_every=10):
         plt.xlabel('Episode')
         plt.savefig('survival_time_trend.png')
         plt.show()
-    
+
+    wandb.finish()
     return agent
 
 if __name__ == '__main__':
